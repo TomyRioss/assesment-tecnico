@@ -21,7 +21,7 @@ namespace AssesmentTecnico.Services
             _deviceToken = Environment.GetEnvironmentVariable("FCM_DEVICE_TOKEN") ?? string.Empty;
         }
 
-        public async Task EnviarResumenAsync(List<Recordatorio> criticos, List<Recordatorio> proximosAVencer)
+        public async Task EnviarResumenAsync(List<Recordatorio> criticos, List<Recordatorio> proximosAVencer) // Solo criticos y proximos a vencer se notifican.
         {
             var seccionCriticos = criticos.Any()
                 ? string.Join(" | ", criticos.Select(r =>

@@ -59,6 +59,9 @@ Console.WriteLine("\n=== ENVIANDO RESUMEN POR EMAIL ===");
 var emailService = new EmailService();
 await emailService.EnviarResumenAsync(criticos, proximosAVencer);
 
+foreach (var r in criticos.Concat(proximosAVencer).DistinctBy(r => r.Id))
+    r.Estado = EstadoRecordatorio.Notificado;
+
 Console.WriteLine("\n=== ENVIANDO RESUMEN PUSH (FCM) ===");
 var fcmService = new FcmService();
 await fcmService.EnviarResumenAsync(criticos, proximosAVencer);

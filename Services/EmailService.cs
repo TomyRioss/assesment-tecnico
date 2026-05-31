@@ -22,22 +22,14 @@ namespace AssesmentTecnico.Services
 
         public async Task EnviarResumenAsync(List<Recordatorio> criticos, List<Recordatorio> proximosAVencer)
         {
-            if (string.IsNullOrEmpty(_remitente) || string.IsNullOrEmpty(_destinatario))
-            {
-                Console.WriteLine("[EMAIL] Datos insuficientes. Email no enviado.");
-                return;
-            }
-
-            // Construimos la sección de críticos línea por línea
             var seccionCriticos = criticos.Any()
                 ? string.Join("\n", criticos.Select(r =>
-                    $"   {r.TipoVencimiento} (Consorcio {r.ConsorcioId}) - venció hace {Math.Abs((r.FechaVencimiento - DateTime.Now).Days)} días"))
+                    $"  ⚠️ {r.TipoVencimiento} (Consorcio {r.ConsorcioId})"))
                 : "  Sin recordatorios críticos.";
 
-            // Construimos la sección de próximos a vencer línea por línea
             var seccionProximos = proximosAVencer.Any()
                 ? string.Join("\n", proximosAVencer.Select(r =>
-                    $"   {r.TipoVencimiento} (Consorcio {r.ConsorcioId}) - vence en {(r.FechaVencimiento - DateTime.Now).Days} días"))
+                    $"  🔔 {r.TipoVencimiento} vence en {(r.FechaVencimiento - DateTime.Now).Days} días"))
                 : "  Sin recordatorios próximos a vencer.";
 
             var asunto = "[AdminProp] Resumen de vencimientos";
@@ -52,7 +44,17 @@ namespace AssesmentTecnico.Services
 
                 Por favor tome las acciones necesarias a la brevedad.
 
+                AdminProp - Sistema de recordatorios
                 """;
+
+            if (string.IsNullOrEmpty(_remitente) || string.IsNullOrEmpty(_destinatario))
+            {
+                Console.WriteLine("[EMAIL] CREDENCIALES NO ENCONTRADAS, SIMULACIÓN CARGADA: email preparado.");
+                Console.WriteLine($"[EMAIL] Asunto: {asunto}");
+                Console.WriteLine($"[EMAIL] Cuerpo:\n{cuerpo}");
+                Console.WriteLine("[EMAIL] En producción, este email se enviaría con credenciales SMTP configuradas.");
+                return;
+            }
 
             using var mensaje = new MailMessage(_remitente, _destinatario, asunto, cuerpo);
 
