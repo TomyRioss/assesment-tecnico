@@ -21,20 +21,20 @@ namespace AssesmentTecnico.Services
             _deviceToken = Environment.GetEnvironmentVariable("FCM_DEVICE_TOKEN") ?? string.Empty;
         }
 
-        public async Task EnviarResumenAsync(List<Recordatorio> criticos, List<Recordatorio> proximosAVencer) // Solo criticos y proximos a vencer se notifican.
+        public async Task EnviarResumenAsync(List<Recordatorio> criticos, List<Recordatorio> proximosAVencer, string resumenIa = "")
         {
             var seccionCriticos = criticos.Any()
-                ? string.Join(" | ", criticos.Select(r =>
-                    $" {r.TipoVencimiento} (Consorcio {r.ConsorcioId})"))
+                ? string.Join(" | ", criticos.Select(r => $"⚠️ {r.TipoVencimiento} (Consorcio {r.ConsorcioId})"))
                 : "Sin críticos.";
 
             var seccionProximos = proximosAVencer.Any()
-                ? string.Join(" | ", proximosAVencer.Select(r =>
-                    $" {r.TipoVencimiento} vence en {(r.FechaVencimiento - DateTime.Now).Days} días"))
+                ? string.Join(" | ", proximosAVencer.Select(r => $"🔔 {r.TipoVencimiento} vence en {(r.FechaVencimiento - DateTime.Now).Days} días"))
                 : "Sin próximos a vencer.";
 
             var titulo  = "[AdminProp] Resumen de vencimientos";
-            var mensaje = $"CRÍTICOS: {seccionCriticos} — PRÓXIMOS: {seccionProximos}";
+            var mensaje = string.IsNullOrEmpty(resumenIa)
+                ? $"CRÍTICOS: {seccionCriticos} — PRÓXIMOS: {seccionProximos}"
+                : resumenIa;
 
             if (string.IsNullOrEmpty(_projectId) || string.IsNullOrEmpty(_accessToken))
             {
@@ -45,40 +45,51 @@ namespace AssesmentTecnico.Services
                 return;
             }
 
-            var payload = new
+            await EjecutarConReintentos(async () =>
             {
-                message = new
+                var payload = new
                 {
-                    token        = _deviceToken,
-                    notification = new
+                    message = new
                     {
-                        title = titulo,
-                        body  = mensaje
+                        token        = _deviceToken,
+                        notification = new { title = titulo, body = mensaje }
                     }
-                }
-            };
+                };
 
-            var jsonPayload = JsonSerializer.Serialize(payload);
-            var content     = new StringContent(jsonPayload, Encoding.UTF8, "application/json");
+                var jsonPayload = JsonSerializer.Serialize(payload);
+                var content     = new StringContent(jsonPayload, Encoding.UTF8, "application/json");
 
-            using var httpClient = new HttpClient();
-            httpClient.DefaultRequestHeaders.Authorization =
-                new AuthenticationHeaderValue("Bearer", _accessToken);
+                using var httpClient = new HttpClient();
+                httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", _accessToken);
 
-            var url = $"https://fcm.googleapis.com/v1/projects/{_projectId}/messages:send";
-
-            try
-            {
+                var url      = $"https://fcm.googleapis.com/v1/projects/{_projectId}/messages:send";
                 var response = await httpClient.PostAsync(url, content);
 
-                if (response.IsSuccessStatusCode)
-                    Console.WriteLine("[FCM] Resumen de vencimientos enviado correctamente.");
-                else
-                    Console.WriteLine($"[FCM] Error al enviar resumen. Código HTTP: {response.StatusCode}");
-            }
-            catch (Exception ex)
+                if (!response.IsSuccessStatusCode)
+                    throw new Exception($"HTTP {response.StatusCode}");
+
+                Console.WriteLine("[FCM] Resumen de vencimientos enviado correctamente.");
+            }, "[FCM]");
+        }
+
+        private async Task EjecutarConReintentos(Func<Task> accion, string prefijo)
+        {
+            int intentos = 3;
+            int delayMs  = 2000;
+
+            for (int i = 0; i < intentos; i++)
             {
-                Console.WriteLine($"[FCM] Error al conectarse a Firebase: {ex.Message}");
+                try
+                {
+                    await accion();
+                    return;
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"{prefijo} [REINTENTO {i + 1}/{intentos}] Error: {ex.Message}");
+                    if (i < intentos - 1)
+                        await Task.Delay(delayMs * (int)Math.Pow(2, i));
+                }
             }
         }
     }

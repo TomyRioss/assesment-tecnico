@@ -20,21 +20,22 @@ namespace AssesmentTecnico.Services
             _destinatario = Environment.GetEnvironmentVariable("SMTP_DESTINATARIO") ?? string.Empty;
         }
 
-        public async Task EnviarResumenAsync(List<Recordatorio> criticos, List<Recordatorio> proximosAVencer)
+        public async Task EnviarResumenAsync(List<Recordatorio> criticos, List<Recordatorio> proximosAVencer, string resumenIa = "")
         {
             var seccionCriticos = criticos.Any()
-                ? string.Join("\n", criticos.Select(r =>
-                    $"  ⚠️ {r.TipoVencimiento} (Consorcio {r.ConsorcioId})"))
+                ? string.Join("\n", criticos.Select(r => $"  ⚠️ {r.TipoVencimiento} (Consorcio {r.ConsorcioId})"))
                 : "  Sin recordatorios críticos.";
 
             var seccionProximos = proximosAVencer.Any()
-                ? string.Join("\n", proximosAVencer.Select(r =>
-                    $"  🔔 {r.TipoVencimiento} vence en {(r.FechaVencimiento - DateTime.Now).Days} días"))
+                ? string.Join("\n", proximosAVencer.Select(r => $"  🔔 {r.TipoVencimiento} vence en {(r.FechaVencimiento - DateTime.Now).Days} días"))
                 : "  Sin recordatorios próximos a vencer.";
 
             var asunto = "[AdminProp] Resumen de vencimientos";
             var cuerpo = $"""
                 Estimado administrador,
+
+                === ANÁLISIS IA ===
+                {resumenIa}
 
                 === CRÍTICOS / VENCIDOS ===
                 {seccionCriticos}
@@ -49,29 +50,45 @@ namespace AssesmentTecnico.Services
 
             if (string.IsNullOrEmpty(_remitente) || string.IsNullOrEmpty(_destinatario))
             {
-                Console.WriteLine("[EMAIL] CREDENCIALES NO ENCONTRADAS, SIMULACIÓN CARGADA: email preparado.");
+                Console.WriteLine("[EMAIL] SIMULACIÓN: email preparado.");
                 Console.WriteLine($"[EMAIL] Asunto: {asunto}");
                 Console.WriteLine($"[EMAIL] Cuerpo:\n{cuerpo}");
                 Console.WriteLine("[EMAIL] En producción, este email se enviaría con credenciales SMTP configuradas.");
                 return;
             }
 
-            using var mensaje = new MailMessage(_remitente, _destinatario, asunto, cuerpo);
-
-            using var cliente = new SmtpClient("smtp.gmail.com", 587)
+            await EjecutarConReintentos(async () =>
             {
-                Credentials = new NetworkCredential(_remitente, _password),
-                EnableSsl   = true
-            };
+                using var mensaje = new MailMessage(_remitente, _destinatario, asunto, cuerpo);
+                using var cliente = new SmtpClient("smtp.gmail.com", 587)
+                {
+                    Credentials = new NetworkCredential(_remitente, _password),
+                    EnableSsl   = true
+                };
 
-            try
-            {
                 await cliente.SendMailAsync(mensaje);
                 Console.WriteLine("[EMAIL] Resumen de vencimientos enviado correctamente.");
-            }
-            catch (Exception ex)
+            }, "[EMAIL]");
+        }
+
+        private async Task EjecutarConReintentos(Func<Task> accion, string prefijo)
+        {
+            int intentos = 3;
+            int delayMs  = 2000;
+
+            for (int i = 0; i < intentos; i++)
             {
-                Console.WriteLine($"[EMAIL] Error al enviar resumen: {ex.Message}");
+                try
+                {
+                    await accion();
+                    return;
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"{prefijo} [REINTENTO {i + 1}/{intentos}] Error: {ex.Message}");
+                    if (i < intentos - 1)
+                        await Task.Delay(delayMs * (int)Math.Pow(2, i));
+                }
             }
         }
     }

@@ -14,7 +14,7 @@ var recordatorios = new List<Recordatorio>
         Descripcion = "Póliza nro. 4521",
         ConsorcioId = 1,
         Estado = EstadoRecordatorio.Pendiente,
-        Prioridad = Prioridad.Alta
+        Prioridad = Prioridad.Media
     },
     new Recordatorio
     {
@@ -34,34 +34,9 @@ var recordatorios = new List<Recordatorio>
         Descripcion = "Renovación anual",
         ConsorcioId = 1,
         Estado = EstadoRecordatorio.Pendiente,
-        Prioridad = Prioridad.Baja
+        Prioridad = Prioridad.Media
     }
 };
 
-var service = new RecordatorioService(recordatorios);
-
-Console.WriteLine("=== VENCIDOS ===");
-foreach (var r in service.ObtenerVencidos())
-    Console.WriteLine($"- {r.TipoVencimiento} (Consorcio {r.ConsorcioId})");
-
-Console.WriteLine("\n=== PRÓXIMOS A VENCER ===");
-foreach (var r in service.ObtenerProximosAVencer())
-    Console.WriteLine($"- {r.TipoVencimiento} vence el {r.FechaVencimiento:dd/MM/yyyy}");
-
-Console.WriteLine("\n=== CRÍTICOS ===");
-foreach (var r in service.ObtenerCriticos())
-    Console.WriteLine($"- {r.TipoVencimiento} | Prioridad: {r.Prioridad}");
-
-var criticos        = service.ObtenerCriticos();
-var proximosAVencer = service.ObtenerProximosAVencer();
-
-Console.WriteLine("\n=== ENVIANDO RESUMEN POR EMAIL ===");
-var emailService = new EmailService();
-await emailService.EnviarResumenAsync(criticos, proximosAVencer);
-
-foreach (var r in criticos.Concat(proximosAVencer).DistinctBy(r => r.Id))
-    r.Estado = EstadoRecordatorio.Notificado;
-
-Console.WriteLine("\n=== ENVIANDO RESUMEN PUSH (FCM) ===");
-var fcmService = new FcmService();
-await fcmService.EnviarResumenAsync(criticos, proximosAVencer);
+var scheduler = new TareaProgramadaService();
+await scheduler.IniciarAsync(recordatorios);
