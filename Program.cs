@@ -1,58 +1,58 @@
-using DotNetEnv;
+﻿using DotNetEnv;
 using AssesmentTecnico.Models;
 using AssesmentTecnico.Services;
 
 Env.Load();
 
-var reminders = new List<Reminder>
+var recordatorios = new List<Recordatorio>
 {
-    new Reminder
+    new Recordatorio
     {
-        Id          = 1,
-        ExpiryType  = "Seguro contra incendio",
-        ExpiryDate  = DateTime.Now.AddDays(-3),
-        Description = "Póliza nro. 4521",
-        CondoId     = 1,
-        Status      = ReminderStatus.Pending,
-        Priority    = Priority.Medium
+        Id = 1,
+        TipoVencimiento = "Seguro contra incendio",
+        FechaVencimiento = DateTime.Now.AddDays(-3),
+        Descripcion = "Póliza nro. 4521",
+        ConsorcioId = 1,
+        Estado = EstadoRecordatorio.Pendiente,
+        Prioridad = Prioridad.Media
     },
-    new Reminder
+    new Recordatorio
     {
-        Id          = 2,
-        ExpiryType  = "Mantenimiento de ascensor",
-        ExpiryDate  = DateTime.Now.AddDays(5),
-        Description = "Empresa TecnoAscensores",
-        CondoId     = 2,
-        Status      = ReminderStatus.Pending,
-        Priority    = Priority.Medium
+        Id = 2,
+        TipoVencimiento = "Mantenimiento de ascensor",
+        FechaVencimiento = DateTime.Now.AddDays(5),
+        Descripcion = "Empresa TecnoAscensores",
+        ConsorcioId = 2,
+        Estado = EstadoRecordatorio.Pendiente,
+        Prioridad = Prioridad.Media
     },
-    new Reminder
+    new Recordatorio
     {
-        Id          = 3,
-        ExpiryType  = "Habilitación municipal",
-        ExpiryDate  = DateTime.Now.AddDays(30),
-        Description = "Renovación anual",
-        CondoId     = 1,
-        Status      = ReminderStatus.Pending,
-        Priority    = Priority.Medium
+        Id = 3,
+        TipoVencimiento = "Habilitación municipal",
+        FechaVencimiento = DateTime.Now.AddDays(30),
+        Descripcion = "Renovación anual",
+        ConsorcioId = 1,
+        Estado = EstadoRecordatorio.Pendiente,
+        Prioridad = Prioridad.Media
     }
 };
 
-var service = new ReminderService(reminders);
+var service = new RecordatorioService(recordatorios);
 
 Console.WriteLine("=== VENCIDOS ===");
-foreach (var r in service.GetOverdue())
-    Console.WriteLine($"- {r.ExpiryType} (Consorcio {r.CondoId})");
+foreach (var r in service.ObtenerVencidos())
+    Console.WriteLine($"- {r.TipoVencimiento} (Consorcio {r.ConsorcioId})");
 
 Console.WriteLine("\n=== PRÓXIMOS A VENCER ===");
-foreach (var r in service.GetUpcoming())
-    Console.WriteLine($"- {r.ExpiryType} vence el {r.ExpiryDate:dd/MM/yyyy}");
+foreach (var r in service.ObtenerProximosAVencer())
+    Console.WriteLine($"- {r.TipoVencimiento} vence el {r.FechaVencimiento:dd/MM/yyyy}");
 
 Console.WriteLine("\n=== CRÍTICOS ===");
-foreach (var r in service.GetCritical())
-    Console.WriteLine($"- {r.ExpiryType} | Prioridad: {r.Priority}");
+foreach (var r in service.ObtenerCriticos())
+    Console.WriteLine($"- {r.TipoVencimiento} | Prioridad: {r.Prioridad}");
 
 Console.WriteLine();
 
-var scheduler = new SchedulerService();
-await scheduler.StartAsync(reminders);
+var scheduler = new TareaProgramadaService();
+await scheduler.IniciarAsync(recordatorios);

@@ -2,27 +2,27 @@ namespace AssesmentTecnico.Services
 {
     public static class RetryHelper
     {
-        public static async Task<bool> ExecuteWithRetry(Func<Task> action, string prefix)
+        public static async Task<bool> EjecutarConReintentos(Func<Task> accion, string prefijo)
         {
-            int attempts = 3;
+            int intentos = 3;
             int delayMs  = 2000;
 
-            for (int i = 0; i < attempts; i++)
+            for (int i = 0; i < intentos; i++)
             {
                 try
                 {
-                    await action();
+                    await accion();
                     return true;
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"{prefix} [REINTENTO {i + 1}/{attempts}] Error: {ex.Message}");
-                    if (i < attempts - 1)
-                        await Task.Delay(delayMs * (1 << i));
+                    Console.WriteLine($"{prefijo} [REINTENTO {i + 1}/{intentos}] Error: {ex.Message}");
+                    if (i < intentos - 1)
+                        await Task.Delay(delayMs * (int)Math.Pow(2, i));
                 }
             }
 
-            Console.WriteLine($"{prefix} Todos los reintentos fallaron.");
+            Console.WriteLine($"{prefijo} Todos los reintentos fallaron.");
             return false;
         }
     }
