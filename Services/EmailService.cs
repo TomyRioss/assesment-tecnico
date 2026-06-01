@@ -1,6 +1,5 @@
 using System.Net;
 using System.Net.Mail;
-using DotNetEnv;
 using AssesmentTecnico.Models;
 
 namespace AssesmentTecnico.Services
@@ -13,14 +12,12 @@ namespace AssesmentTecnico.Services
 
         public EmailService()
         {
-            Env.Load();
-
             _remitente    = Environment.GetEnvironmentVariable("SMTP_EMAIL")        ?? string.Empty;
             _password     = Environment.GetEnvironmentVariable("SMTP_PASSWORD")     ?? string.Empty;
             _destinatario = Environment.GetEnvironmentVariable("SMTP_DESTINATARIO") ?? string.Empty;
         }
 
-        public async Task EnviarResumenAsync(List<Recordatorio> criticos, List<Recordatorio> proximosAVencer, string resumenIa = "")
+        public async Task<bool> EnviarResumenAsync(List<Recordatorio> criticos, List<Recordatorio> proximosAVencer, string resumenIa = "")
         {
             var seccionCriticos = criticos.Any()
                 ? string.Join("\n", criticos.Select(r => $"  ⚠️ {r.TipoVencimiento} (Consorcio {r.ConsorcioId})"))
@@ -54,10 +51,10 @@ namespace AssesmentTecnico.Services
                 Console.WriteLine($"[EMAIL] Asunto: {asunto}");
                 Console.WriteLine($"[EMAIL] Cuerpo:\n{cuerpo}");
                 Console.WriteLine("[EMAIL] En producción, este email se enviaría con credenciales SMTP configuradas.");
-                return;
+                return true;
             }
 
-            await EjecutarConReintentos(async () =>
+            return await RetryHelper.EjecutarConReintentos(async () =>
             {
                 using var mensaje = new MailMessage(_remitente, _destinatario, asunto, cuerpo);
                 using var cliente = new SmtpClient("smtp.gmail.com", 587)
@@ -69,27 +66,6 @@ namespace AssesmentTecnico.Services
                 await cliente.SendMailAsync(mensaje);
                 Console.WriteLine("[EMAIL] Resumen de vencimientos enviado correctamente.");
             }, "[EMAIL]");
-        }
-
-        private async Task EjecutarConReintentos(Func<Task> accion, string prefijo)
-        {
-            int intentos = 3;
-            int delayMs  = 2000;
-
-            for (int i = 0; i < intentos; i++)
-            {
-                try
-                {
-                    await accion();
-                    return;
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine($"{prefijo} [REINTENTO {i + 1}/{intentos}] Error: {ex.Message}");
-                    if (i < intentos - 1)
-                        await Task.Delay(delayMs * (int)Math.Pow(2, i));
-                }
-            }
         }
     }
 }
