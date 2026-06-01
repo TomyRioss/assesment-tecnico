@@ -45,7 +45,7 @@ namespace AssesmentTecnico.Services
                 AdminProp - Sistema de recordatorios
                 """;
 
-            if (string.IsNullOrEmpty(_remitente) || string.IsNullOrEmpty(_destinatario))
+            if (string.IsNullOrEmpty(_remitente) || string.IsNullOrEmpty(_destinatario)) // FALLBACK = NO CREDENCIALES
             {
                 Console.WriteLine("[EMAIL] SIMULACIÓN: email preparado.");
                 Console.WriteLine($"[EMAIL] Asunto: {asunto}");

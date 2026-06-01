@@ -19,7 +19,7 @@ namespace AssesmentTecnico.Services
                 .ToList();
         }
 
-        public List<Recordatorio> ObtenerProximosAVencer(int dias = 7)
+        public List<Recordatorio> ObtenerProximosAVencer(int dias = 7) // Vence en menos de 7 días.
         {
             var ahora = DateTime.Now;
             return _recordatorios
@@ -31,7 +31,7 @@ namespace AssesmentTecnico.Services
                 .ToList();
         }
 
-        public List<Recordatorio> ObtenerCriticos()
+        public List<Recordatorio> ObtenerCriticos() // Vence en menos de 7 días y prioridad alta = Crítico.
         {
             var ahora = DateTime.Now;
             return _recordatorios
@@ -41,5 +41,6 @@ namespace AssesmentTecnico.Services
                 .OrderBy(r => r.FechaVencimiento)
                 .ToList();
         }
+
     }
 }

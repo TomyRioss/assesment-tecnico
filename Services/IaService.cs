@@ -17,7 +17,7 @@ namespace AssesmentTecnico.Services
 
         public async Task<ResultadoIa> AnalizarRecordatoriosAsync(List<Recordatorio> recordatorios)
         {
-            if (string.IsNullOrEmpty(_apiKey))
+            if (string.IsNullOrEmpty(_apiKey)) // FALLBACK = NO CREDENCIALES
             {
                 Console.WriteLine("[IA] SIMULACIÓN: sin API key configurada.");
                 return new ResultadoIa
@@ -54,7 +54,7 @@ namespace AssesmentTecnico.Services
                     new { role = "system", content = systemPrompt },
                     new { role = "user",   content = userPrompt   }
                 }
-            };
+            }; // 4o-Mini = Barato y Excelente para clasificación. Json_object = Modelo solo responde en formato json.
 
             var jsonSerializado = JsonSerializer.Serialize(requestBody);
             ResultadoIa? resultado = null;

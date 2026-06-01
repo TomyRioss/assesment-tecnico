@@ -15,6 +15,8 @@ namespace AssesmentTecnico.Models
         Vencido
     }
 
+// ENUMS PARA DATOS ESTRICTOS
+
     public class Recordatorio
     {
         public int Id { get; set; }
