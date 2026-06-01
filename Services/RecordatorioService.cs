@@ -14,7 +14,7 @@ namespace AssesmentTecnico.Services
         public List<Recordatorio> ObtenerVencidos()
         {
             return _recordatorios
-                .Where(r => r.FechaVencimiento < DateTime.Now)
+                .Where(r => r.Estado == EstadoRecordatorio.Pendiente && r.FechaVencimiento < DateTime.Now)
                 .OrderBy(r => r.FechaVencimiento)
                 .ToList();
         }
