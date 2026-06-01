@@ -18,7 +18,7 @@ namespace AssesmentTecnico.Services
                 {
                     Console.WriteLine($"{prefix} [REINTENTO {i + 1}/{attempts}] Error: {ex.Message}");
                     if (i < attempts - 1)
-                        await Task.Delay(delayMs * (int)Math.Pow(2, i));
+                        await Task.Delay(delayMs * (1 << i));
                 }
             }
 

@@ -20,12 +20,18 @@ namespace AssesmentTecnico.Services
 
         public async Task<bool> SendSummaryAsync(List<Reminder> critical, List<Reminder> upcoming, string aiSummary = "")
         {
-            var title   = "[AdminProp] Resumen de vencimientos";
-            var message = string.IsNullOrEmpty(aiSummary)
-                ? $"CRÍTICOS: {(critical.Any() ? string.Join(" | ", critical.Select(r => $"{r.ExpiryType} (Consorcio {r.CondoId})")) : "Sin críticos.")} — PRÓXIMOS: {(upcoming.Any() ? string.Join(" | ", upcoming.Select(r => $"{r.ExpiryType} vence en {(r.ExpiryDate - DateTime.Now).Days} días")) : "Sin próximos a vencer.")}"
+            var title          = "[AdminProp] Resumen de vencimientos";
+            var criticalPart   = critical.Any()
+                ? string.Join(" | ", critical.Select(r => $"{r.ExpiryType} (Consorcio {r.CondoId})"))
+                : "Sin críticos.";
+            var upcomingPart   = upcoming.Any()
+                ? string.Join(" | ", upcoming.Select(r => $"{r.ExpiryType} vence en {(r.ExpiryDate - DateTime.Now).Days} días"))
+                : "Sin próximos a vencer.";
+            var message        = string.IsNullOrEmpty(aiSummary)
+                ? $"CRÍTICOS: {criticalPart} — PRÓXIMOS: {upcomingPart}"
                 : aiSummary;
 
-            if (string.IsNullOrEmpty(_projectId) || string.IsNullOrEmpty(_accessToken))
+            if (string.IsNullOrEmpty(_projectId) || string.IsNullOrEmpty(_accessToken) || string.IsNullOrEmpty(_deviceToken))
             {
                 Console.WriteLine("[FCM] SIMULACIÓN: notificación push preparada.");
                 Console.WriteLine($"[FCM] Título:  {title}");

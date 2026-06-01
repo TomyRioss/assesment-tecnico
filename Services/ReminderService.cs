@@ -14,7 +14,7 @@ namespace AssesmentTecnico.Services
         public List<Reminder> GetOverdue()
         {
             return _reminders
-                .Where(r => r.ExpiryDate < DateTime.Now)
+                .Where(r => r.Status == ReminderStatus.Pending && r.ExpiryDate < DateTime.Now)
                 .OrderBy(r => r.ExpiryDate)
                 .ToList();
         }

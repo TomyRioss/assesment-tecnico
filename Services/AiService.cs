@@ -57,38 +57,40 @@ namespace AssesmentTecnico.Services
             }; // 4o-Mini = Barato y Excelente para clasificación. Json_object = Modelo solo responde en formato json.
 
             var serializedJson = JsonSerializer.Serialize(requestBody);
-            AiResult? result   = null;
 
             using var httpClient = new HttpClient();
             httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", _apiKey);
 
-            await RetryHelper.ExecuteWithRetry(async () =>
-            {
-                var content  = new StringContent(serializedJson, Encoding.UTF8, "application/json");
-                var response = await httpClient.PostAsync("https://api.openai.com/v1/chat/completions", content);
-
-                if (!response.IsSuccessStatusCode)
-                    throw new Exception($"HTTP {response.StatusCode}");
-
-                var responseJson   = await response.Content.ReadAsStringAsync();
-                var openAiResponse = JsonSerializer.Deserialize<OpenAiResponse>(responseJson);
-                var resultJson     = openAiResponse?.Choices?.Count > 0
-                    ? openAiResponse.Choices[0]?.Message?.Content ?? string.Empty
-                    : string.Empty;
-                var rawResult      = JsonSerializer.Deserialize<AiResultJson>(resultJson);
-
-                result = new AiResult
-                {
-                    Summary    = rawResult?.Summary ?? string.Empty,
-                    Priorities = rawResult?.Priorities?.Select(p => new AssignedPriority
-                    {
-                        Id       = p.Id,
-                        Priority = Enum.TryParse<Priority>(p.Priority, out var priority) ? priority : Priority.Medium
-                    }).ToList() ?? new()
-                };
-            }, "[IA]");
+            AiResult? result = null;
+            await RetryHelper.ExecuteWithRetry(async () => { result = await CallOpenAiAsync(httpClient, serializedJson); }, "[IA]");
 
             return result ?? Fallback(reminders);
+        }
+
+        private async Task<AiResult> CallOpenAiAsync(HttpClient httpClient, string serializedJson)
+        {
+            var content  = new StringContent(serializedJson, Encoding.UTF8, "application/json");
+            var response = await httpClient.PostAsync("https://api.openai.com/v1/chat/completions", content);
+
+            if (!response.IsSuccessStatusCode)
+                throw new Exception($"HTTP {response.StatusCode}");
+
+            var responseJson   = await response.Content.ReadAsStringAsync();
+            var openAiResponse = JsonSerializer.Deserialize<OpenAiResponse>(responseJson);
+            var resultJson     = openAiResponse?.Choices?.Count > 0
+                ? openAiResponse.Choices[0]?.Message?.Content ?? string.Empty
+                : string.Empty;
+            var rawResult      = JsonSerializer.Deserialize<AiResultJson>(resultJson);
+
+            return new AiResult
+            {
+                Summary    = rawResult?.Summary ?? string.Empty,
+                Priorities = rawResult?.Priorities?.Select(p => new AssignedPriority
+                {
+                    Id       = p.Id,
+                    Priority = Enum.TryParse<Priority>(p.Priority, out var priority) ? priority : Priority.Medium
+                }).ToList() ?? new()
+            };
         }
 
         private AiResult Fallback(List<Reminder> reminders) => new AiResult
