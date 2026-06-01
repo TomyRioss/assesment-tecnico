@@ -22,7 +22,7 @@ namespace AssesmentTecnico.Services
         {
             var titulo  = "[AdminProp] Resumen de vencimientos";
             var mensaje = string.IsNullOrEmpty(resumenIa)
-                ? $"CRÍTICOS: {(criticos.Any() ? string.Join(" | ", criticos.Select(r => $"⚠️ {r.TipoVencimiento} (Consorcio {r.ConsorcioId})")) : "Sin críticos.")} — PRÓXIMOS: {(proximosAVencer.Any() ? string.Join(" | ", proximosAVencer.Select(r => $"🔔 {r.TipoVencimiento} vence en {(r.FechaVencimiento - DateTime.Now).Days} días")) : "Sin próximos a vencer.")}"
+                ? $"CRÍTICOS: {(criticos.Any() ? string.Join(" | ", criticos.Select(r => $"{r.TipoVencimiento} (Consorcio {r.ConsorcioId})")) : "Sin críticos.")} — PRÓXIMOS: {(proximosAVencer.Any() ? string.Join(" | ", proximosAVencer.Select(r => $"{r.TipoVencimiento} vence en {(r.FechaVencimiento - DateTime.Now).Days} días")) : "Sin próximos a vencer.")}"
                 : resumenIa;
 
             if (string.IsNullOrEmpty(_projectId) || string.IsNullOrEmpty(_accessToken))

@@ -20,11 +20,11 @@ namespace AssesmentTecnico.Services
         public async Task<bool> EnviarResumenAsync(List<Recordatorio> criticos, List<Recordatorio> proximosAVencer, string resumenIa = "")
         {
             var seccionCriticos = criticos.Any()
-                ? string.Join("\n", criticos.Select(r => $"  ⚠️ {r.TipoVencimiento} (Consorcio {r.ConsorcioId})"))
+                ? string.Join("\n", criticos.Select(r => $"  {r.TipoVencimiento} (Consorcio {r.ConsorcioId})"))
                 : "  Sin recordatorios críticos.";
 
             var seccionProximos = proximosAVencer.Any()
-                ? string.Join("\n", proximosAVencer.Select(r => $"  🔔 {r.TipoVencimiento} vence en {(r.FechaVencimiento - DateTime.Now).Days} días"))
+                ? string.Join("\n", proximosAVencer.Select(r => $"  {r.TipoVencimiento} vence en {(r.FechaVencimiento - DateTime.Now).Days} días"))
                 : "  Sin recordatorios próximos a vencer.";
 
             var asunto = "[AdminProp] Resumen de vencimientos";
