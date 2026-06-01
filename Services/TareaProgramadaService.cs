@@ -4,15 +4,17 @@ namespace AssesmentTecnico.Services
 {
     public class TareaProgramadaService
     {
-        private readonly IaService _iaService;
-        private readonly EmailService _emailService;
-        private readonly FcmService _fcmService;
+        private readonly IaService           _iaService;
+        private readonly EmailService        _emailService;
+        private readonly FcmService          _fcmService;
+        private readonly RecordatorioService _recordatorioService;
 
-        public TareaProgramadaService()
+        public TareaProgramadaService(List<Recordatorio> recordatorios)
         {
-            _iaService    = new IaService();
-            _emailService = new EmailService();
-            _fcmService   = new FcmService();
+            _iaService           = new IaService();
+            _emailService        = new EmailService();
+            _fcmService          = new FcmService();
+            _recordatorioService = new RecordatorioService(recordatorios);
         }
 
         public async Task IniciarAsync(List<Recordatorio> recordatorios)
@@ -40,16 +42,21 @@ namespace AssesmentTecnico.Services
 
                 Console.WriteLine($"[IA] Resumen: {resultadoIa.Resumen}");
 
-                var service         = new RecordatorioService(recordatoriosValidos);
-                var criticos        = service.ObtenerCriticos();
-                var proximosAVencer = service.ObtenerProximosAVencer();
+                var criticos        = _recordatorioService.ObtenerCriticos();
+                var proximosAVencer = _recordatorioService.ObtenerProximosAVencer();
 
-                await _emailService.EnviarResumenAsync(criticos, proximosAVencer, resultadoIa.Resumen);
+                var emailOk = await _emailService.EnviarResumenAsync(criticos, proximosAVencer, resultadoIa.Resumen);
+                var fcmOk   = await _fcmService.EnviarResumenAsync(criticos, proximosAVencer, resultadoIa.Resumen);
 
-                foreach (var r in criticos.Concat(proximosAVencer).DistinctBy(r => r.Id))
-                    r.Estado = EstadoRecordatorio.Notificado;
-
-                await _fcmService.EnviarResumenAsync(criticos, proximosAVencer, resultadoIa.Resumen);
+                if (emailOk && fcmOk)
+                {
+                    foreach (var r in criticos.Concat(proximosAVencer).DistinctBy(r => r.Id))
+                        r.Estado = EstadoRecordatorio.Notificado;
+                }
+                else
+                {
+                    Console.WriteLine("[SCHEDULER] Estado no actualizado: uno o más servicios fallaron.");
+                }
 
                 Console.WriteLine($"[SCHEDULER] Ciclo completado. Próxima ejecución en 24 horas.");
                 await Task.Delay(TimeSpan.FromHours(24));

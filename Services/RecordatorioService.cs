@@ -11,7 +11,7 @@ namespace AssesmentTecnico.Services
             _recordatorios = recordatorios;
         }
 
-        public List<Recordatorio> ObtenerVencidos() // Vencidos ordenados por antiguedad
+        public List<Recordatorio> ObtenerVencidos()
         {
             return _recordatorios
                 .Where(r => r.FechaVencimiento < DateTime.Now)
@@ -19,20 +19,23 @@ namespace AssesmentTecnico.Services
                 .ToList();
         }
 
-        public List<Recordatorio> ObtenerProximosAVencer(int dias = 7) // Vencen en 7 días o menos
+        public List<Recordatorio> ObtenerProximosAVencer(int dias = 7)
         {
+            var ahora = DateTime.Now;
             return _recordatorios
-                .Where(r => r.FechaVencimiento > DateTime.Now &&
-                            r.FechaVencimiento <= DateTime.Now.AddDays(dias))
+                .Where(r => r.FechaVencimiento > ahora &&
+                            r.FechaVencimiento <= ahora.AddDays(dias) &&
+                            r.Prioridad != Prioridad.Alta)
                 .OrderBy(r => r.FechaVencimiento)
                 .ToList();
         }
 
-        public List<Recordatorio> ObtenerCriticos() // Vencen >=7 días y Prioridad Alta
+        public List<Recordatorio> ObtenerCriticos()
         {
+            var ahora = DateTime.Now;
             return _recordatorios
-                .Where(r => r.FechaVencimiento <= DateTime.Now.AddDays(7) &&
-                            r.Prioridad == Prioridad.Alta)
+                .Where(r => r.FechaVencimiento < ahora ||
+                           (r.FechaVencimiento <= ahora.AddDays(7) && r.Prioridad == Prioridad.Alta))
                 .OrderBy(r => r.FechaVencimiento)
                 .ToList();
         }

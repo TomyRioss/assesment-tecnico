@@ -2,7 +2,6 @@ using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using DotNetEnv;
 using AssesmentTecnico.Models;
 
 namespace AssesmentTecnico.Services
@@ -13,7 +12,6 @@ namespace AssesmentTecnico.Services
 
         public IaService()
         {
-            Env.Load();
             _apiKey = Environment.GetEnvironmentVariable("OPENAI_API_KEY") ?? string.Empty;
         }
 
@@ -58,13 +56,13 @@ namespace AssesmentTecnico.Services
                 }
             };
 
-            var json    = JsonSerializer.Serialize(requestBody);
-            var content = new StringContent(json, Encoding.UTF8, "application/json");
-
+            var jsonSerializado = JsonSerializer.Serialize(requestBody);
             ResultadoIa? resultado = null;
 
-            await EjecutarConReintentos(async () =>
+            await RetryHelper.EjecutarConReintentos(async () =>
             {
+                var content = new StringContent(jsonSerializado, Encoding.UTF8, "application/json");
+
                 using var httpClient = new HttpClient();
                 httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", _apiKey);
 
@@ -75,7 +73,9 @@ namespace AssesmentTecnico.Services
 
                 var responseJson   = await response.Content.ReadAsStringAsync();
                 var openAiResponse = JsonSerializer.Deserialize<OpenAiResponse>(responseJson);
-                var resultadoJson  = openAiResponse?.Choices?[0]?.Message?.Content ?? string.Empty;
+                var resultadoJson  = openAiResponse?.Choices?.Count > 0
+                    ? openAiResponse.Choices[0]?.Message?.Content ?? string.Empty
+                    : string.Empty;
                 var resultadoRaw   = JsonSerializer.Deserialize<ResultadoIaJson>(resultadoJson);
 
                 resultado = new ResultadoIa
@@ -90,27 +90,6 @@ namespace AssesmentTecnico.Services
             }, "[IA]");
 
             return resultado ?? Fallback(recordatorios);
-        }
-
-        private async Task EjecutarConReintentos(Func<Task> accion, string prefijo)
-        {
-            int intentos = 3;
-            int delayMs  = 2000;
-
-            for (int i = 0; i < intentos; i++)
-            {
-                try
-                {
-                    await accion();
-                    return;
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine($"{prefijo} [REINTENTO {i + 1}/{intentos}] Error: {ex.Message}");
-                    if (i < intentos - 1)
-                        await Task.Delay(delayMs * (int)Math.Pow(2, i));
-                }
-            }
         }
 
         private ResultadoIa Fallback(List<Recordatorio> recordatorios) => new ResultadoIa

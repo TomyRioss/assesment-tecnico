@@ -15,13 +15,6 @@ namespace AssesmentTecnico.Models
         Vencido
     }
 
-public enum TipoAlerta
-{
-    ProximoAVencer,
-    Critico
-}
-// ENUMS = TIPOS DE DATOS ESTRICTOS => MENOS PROBABILIDAD ERRORES
-
     public class Recordatorio
     {
         public int Id { get; set; }
