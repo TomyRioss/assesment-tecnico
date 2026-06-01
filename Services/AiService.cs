@@ -6,29 +6,29 @@ using AssesmentTecnico.Models;
 
 namespace AssesmentTecnico.Services
 {
-    public class IaService
+    public class AiService
     {
         private readonly string _apiKey;
 
-        public IaService()
+        public AiService()
         {
             _apiKey = Environment.GetEnvironmentVariable("OPENAI_API_KEY") ?? string.Empty;
         }
 
-        public async Task<ResultadoIa> AnalizarRecordatoriosAsync(List<Recordatorio> recordatorios)
+        public async Task<AiResult> AnalyzeRemindersAsync(List<Reminder> reminders)
         {
             if (string.IsNullOrEmpty(_apiKey)) // FALLBACK = NO CREDENCIALES
             {
                 Console.WriteLine("[IA] SIMULACIÓN: sin API key configurada.");
-                return new ResultadoIa
+                return new AiResult
                 {
-                    Resumen     = "[IA] Resumen simulado: hay recordatorios pendientes que requieren atención.",
-                    Prioridades = recordatorios.Select(r => new PrioridadAsignada { Id = r.Id, Prioridad = r.Prioridad }).ToList()
+                    Summary    = "[IA] Resumen simulado: hay recordatorios pendientes que requieren atención.",
+                    Priorities = reminders.Select(r => new AssignedPriority { Id = r.Id, Priority = r.Priority }).ToList()
                 };
             }
 
-            var listaFormateada = string.Join("\n", recordatorios.Select(r =>
-                $"- Id: {r.Id} | Tipo: {r.TipoVencimiento} | Consorcio: {r.ConsorcioId} | Vencimiento: {r.FechaVencimiento:dd/MM/yyyy} | Días restantes: {(r.FechaVencimiento - DateTime.Now).Days}"));
+            var formattedList = string.Join("\n", reminders.Select(r =>
+                $"- Id: {r.Id} | Tipo: {r.ExpiryType} | Consorcio: {r.CondoId} | Vencimiento: {r.ExpiryDate:dd/MM/yyyy} | Días restantes: {(r.ExpiryDate - DateTime.Now).Days}"));
 
             var systemPrompt = """
                 Sos un asistente de gestión de consorcios inmobiliarios.
@@ -44,7 +44,7 @@ namespace AssesmentTecnico.Services
                 Asigná Alta si vence en 7 días o menos o ya venció. Media si vence entre 8 y 30 días. Baja si vence en más de 30 días.
                 """;
 
-            var userPrompt  = $"Analizá estos recordatorios:\n{listaFormateada}";
+            var userPrompt  = $"Analizá estos recordatorios:\n{formattedList}";
             var requestBody = new
             {
                 model           = "gpt-4o-mini",
@@ -56,15 +56,15 @@ namespace AssesmentTecnico.Services
                 }
             }; // 4o-Mini = Barato y Excelente para clasificación. Json_object = Modelo solo responde en formato json.
 
-            var jsonSerializado = JsonSerializer.Serialize(requestBody);
-            ResultadoIa? resultado = null;
+            var serializedJson = JsonSerializer.Serialize(requestBody);
+            AiResult? result   = null;
 
             using var httpClient = new HttpClient();
             httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", _apiKey);
 
-            await RetryHelper.EjecutarConReintentos(async () =>
+            await RetryHelper.ExecuteWithRetry(async () =>
             {
-                var content  = new StringContent(jsonSerializado, Encoding.UTF8, "application/json");
+                var content  = new StringContent(serializedJson, Encoding.UTF8, "application/json");
                 var response = await httpClient.PostAsync("https://api.openai.com/v1/chat/completions", content);
 
                 if (!response.IsSuccessStatusCode)
@@ -72,29 +72,29 @@ namespace AssesmentTecnico.Services
 
                 var responseJson   = await response.Content.ReadAsStringAsync();
                 var openAiResponse = JsonSerializer.Deserialize<OpenAiResponse>(responseJson);
-                var resultadoJson  = openAiResponse?.Choices?.Count > 0
+                var resultJson     = openAiResponse?.Choices?.Count > 0
                     ? openAiResponse.Choices[0]?.Message?.Content ?? string.Empty
                     : string.Empty;
-                var resultadoRaw   = JsonSerializer.Deserialize<ResultadoIaJson>(resultadoJson);
+                var rawResult      = JsonSerializer.Deserialize<AiResultJson>(resultJson);
 
-                resultado = new ResultadoIa
+                result = new AiResult
                 {
-                    Resumen     = resultadoRaw?.Resumen ?? string.Empty,
-                    Prioridades = resultadoRaw?.Prioridades?.Select(p => new PrioridadAsignada
+                    Summary    = rawResult?.Summary ?? string.Empty,
+                    Priorities = rawResult?.Priorities?.Select(p => new AssignedPriority
                     {
-                        Id        = p.Id,
-                        Prioridad = Enum.TryParse<Prioridad>(p.Prioridad, out var prioridad) ? prioridad : Prioridad.Media
+                        Id       = p.Id,
+                        Priority = Enum.TryParse<Priority>(p.Priority, out var priority) ? priority : Priority.Medium
                     }).ToList() ?? new()
                 };
             }, "[IA]");
 
-            return resultado ?? Fallback(recordatorios);
+            return result ?? Fallback(reminders);
         }
 
-        private ResultadoIa Fallback(List<Recordatorio> recordatorios) => new ResultadoIa
+        private AiResult Fallback(List<Reminder> reminders) => new AiResult
         {
-            Resumen     = "[IA] No disponible. Revisá los recordatorios manualmente.",
-            Prioridades = recordatorios.Select(r => new PrioridadAsignada { Id = r.Id, Prioridad = r.Prioridad }).ToList()
+            Summary    = "[IA] No disponible. Revisá los recordatorios manualmente.",
+            Priorities = reminders.Select(r => new AssignedPriority { Id = r.Id, Priority = r.Priority }).ToList()
         };
 
         private class OpenAiResponse
@@ -115,22 +115,22 @@ namespace AssesmentTecnico.Services
             }
         }
 
-        private class ResultadoIaJson
+        private class AiResultJson
         {
             [JsonPropertyName("prioridades")]
-            public List<PrioridadItemJson>? Prioridades { get; set; }
+            public List<PriorityItemJson>? Priorities { get; set; }
 
             [JsonPropertyName("resumen")]
-            public string? Resumen { get; set; }
+            public string? Summary { get; set; }
         }
 
-        private class PrioridadItemJson
+        private class PriorityItemJson
         {
             [JsonPropertyName("id")]
             public int Id { get; set; }
 
             [JsonPropertyName("prioridad")]
-            public string Prioridad { get; set; } = string.Empty;
+            public string Priority { get; set; } = string.Empty;
         }
     }
 }

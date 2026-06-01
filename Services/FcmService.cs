@@ -18,18 +18,18 @@ namespace AssesmentTecnico.Services
             _deviceToken = Environment.GetEnvironmentVariable("FCM_DEVICE_TOKEN") ?? string.Empty;
         }
 
-        public async Task<bool> EnviarResumenAsync(List<Recordatorio> criticos, List<Recordatorio> proximosAVencer, string resumenIa = "")
+        public async Task<bool> SendSummaryAsync(List<Reminder> critical, List<Reminder> upcoming, string aiSummary = "")
         {
-            var titulo  = "[AdminProp] Resumen de vencimientos";
-            var mensaje = string.IsNullOrEmpty(resumenIa)
-                ? $"CRÍTICOS: {(criticos.Any() ? string.Join(" | ", criticos.Select(r => $"{r.TipoVencimiento} (Consorcio {r.ConsorcioId})")) : "Sin críticos.")} — PRÓXIMOS: {(proximosAVencer.Any() ? string.Join(" | ", proximosAVencer.Select(r => $"{r.TipoVencimiento} vence en {(r.FechaVencimiento - DateTime.Now).Days} días")) : "Sin próximos a vencer.")}"
-                : resumenIa;
+            var title   = "[AdminProp] Resumen de vencimientos";
+            var message = string.IsNullOrEmpty(aiSummary)
+                ? $"CRÍTICOS: {(critical.Any() ? string.Join(" | ", critical.Select(r => $"{r.ExpiryType} (Consorcio {r.CondoId})")) : "Sin críticos.")} — PRÓXIMOS: {(upcoming.Any() ? string.Join(" | ", upcoming.Select(r => $"{r.ExpiryType} vence en {(r.ExpiryDate - DateTime.Now).Days} días")) : "Sin próximos a vencer.")}"
+                : aiSummary;
 
             if (string.IsNullOrEmpty(_projectId) || string.IsNullOrEmpty(_accessToken))
             {
                 Console.WriteLine("[FCM] SIMULACIÓN: notificación push preparada.");
-                Console.WriteLine($"[FCM] Título:  {titulo}");
-                Console.WriteLine($"[FCM] Mensaje: {mensaje}");
+                Console.WriteLine($"[FCM] Título:  {title}");
+                Console.WriteLine($"[FCM] Mensaje: {message}");
                 Console.WriteLine("[FCM] En producción, este mensaje se entregaría al dispositivo con token: [FCM_DEVICE_TOKEN]");
                 return true;
             }
@@ -37,14 +37,14 @@ namespace AssesmentTecnico.Services
             using var httpClient = new HttpClient();
             httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", _accessToken);
 
-            return await RetryHelper.EjecutarConReintentos(async () =>
+            return await RetryHelper.ExecuteWithRetry(async () =>
             {
                 var payload = new
                 {
                     message = new
                     {
                         token        = _deviceToken,
-                        notification = new { title = titulo, body = mensaje }
+                        notification = new { title, body = message }
                     }
                 };
 
