@@ -23,7 +23,8 @@ namespace AssesmentTecnico.Services
         {
             var ahora = DateTime.Now;
             return _recordatorios
-                .Where(r => r.FechaVencimiento > ahora &&
+                .Where(r => r.Estado == EstadoRecordatorio.Pendiente &&
+                            r.FechaVencimiento > ahora &&
                             r.FechaVencimiento <= ahora.AddDays(dias) &&
                             r.Prioridad != Prioridad.Alta)
                 .OrderBy(r => r.FechaVencimiento)
@@ -34,8 +35,9 @@ namespace AssesmentTecnico.Services
         {
             var ahora = DateTime.Now;
             return _recordatorios
-                .Where(r => r.FechaVencimiento < ahora ||
-                           (r.FechaVencimiento <= ahora.AddDays(7) && r.Prioridad == Prioridad.Alta))
+                .Where(r => r.Estado == EstadoRecordatorio.Pendiente &&
+                           (r.FechaVencimiento < ahora ||
+                           (r.FechaVencimiento <= ahora.AddDays(7) && r.Prioridad == Prioridad.Alta)))
                 .OrderBy(r => r.FechaVencimiento)
                 .ToList();
         }

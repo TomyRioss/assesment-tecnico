@@ -59,8 +59,9 @@ namespace AssesmentTecnico.Services
                 using var mensaje = new MailMessage(_remitente, _destinatario, asunto, cuerpo);
                 using var cliente = new SmtpClient("smtp.gmail.com", 587)
                 {
-                    Credentials = new NetworkCredential(_remitente, _password),
-                    EnableSsl   = true
+                    UseDefaultCredentials = false,
+                    Credentials           = new NetworkCredential(_remitente, _password),
+                    EnableSsl             = true
                 };
 
                 await cliente.SendMailAsync(mensaje);

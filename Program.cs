@@ -38,5 +38,5 @@ var recordatorios = new List<Recordatorio>
     }
 };
 
-var scheduler = new TareaProgramadaService(recordatorios);
+var scheduler = new TareaProgramadaService();
 await scheduler.IniciarAsync(recordatorios);

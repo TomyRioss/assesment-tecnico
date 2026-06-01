@@ -4,17 +4,15 @@ namespace AssesmentTecnico.Services
 {
     public class TareaProgramadaService
     {
-        private readonly IaService           _iaService;
-        private readonly EmailService        _emailService;
-        private readonly FcmService          _fcmService;
-        private readonly RecordatorioService _recordatorioService;
+        private readonly IaService    _iaService;
+        private readonly EmailService _emailService;
+        private readonly FcmService   _fcmService;
 
-        public TareaProgramadaService(List<Recordatorio> recordatorios)
+        public TareaProgramadaService()
         {
-            _iaService           = new IaService();
-            _emailService        = new EmailService();
-            _fcmService          = new FcmService();
-            _recordatorioService = new RecordatorioService(recordatorios);
+            _iaService    = new IaService();
+            _emailService = new EmailService();
+            _fcmService   = new FcmService();
         }
 
         public async Task IniciarAsync(List<Recordatorio> recordatorios)
@@ -42,8 +40,9 @@ namespace AssesmentTecnico.Services
 
                 Console.WriteLine($"[IA] Resumen: {resultadoIa.Resumen}");
 
-                var criticos        = _recordatorioService.ObtenerCriticos();
-                var proximosAVencer = _recordatorioService.ObtenerProximosAVencer();
+                var recordatorioService = new RecordatorioService(recordatoriosValidos);
+                var criticos            = recordatorioService.ObtenerCriticos();
+                var proximosAVencer     = recordatorioService.ObtenerProximosAVencer();
 
                 var emailOk = await _emailService.EnviarResumenAsync(criticos, proximosAVencer, resultadoIa.Resumen);
                 var fcmOk   = await _fcmService.EnviarResumenAsync(criticos, proximosAVencer, resultadoIa.Resumen);

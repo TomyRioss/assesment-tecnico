@@ -34,6 +34,9 @@ namespace AssesmentTecnico.Services
                 return true;
             }
 
+            using var httpClient = new HttpClient();
+            httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", _accessToken);
+
             return await RetryHelper.EjecutarConReintentos(async () =>
             {
                 var payload = new
@@ -45,11 +48,7 @@ namespace AssesmentTecnico.Services
                     }
                 };
 
-                var content = new StringContent(JsonSerializer.Serialize(payload), Encoding.UTF8, "application/json");
-
-                using var httpClient = new HttpClient();
-                httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", _accessToken);
-
+                var content  = new StringContent(JsonSerializer.Serialize(payload), Encoding.UTF8, "application/json");
                 var url      = $"https://fcm.googleapis.com/v1/projects/{_projectId}/messages:send";
                 var response = await httpClient.PostAsync(url, content);
 
