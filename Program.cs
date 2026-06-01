@@ -38,5 +38,21 @@ var recordatorios = new List<Recordatorio>
     }
 };
 
+var service = new RecordatorioService(recordatorios);
+
+Console.WriteLine("=== VENCIDOS ===");
+foreach (var r in service.ObtenerVencidos())
+    Console.WriteLine($"- {r.TipoVencimiento} (Consorcio {r.ConsorcioId})");
+
+Console.WriteLine("\n=== PRÓXIMOS A VENCER ===");
+foreach (var r in service.ObtenerProximosAVencer())
+    Console.WriteLine($"- {r.TipoVencimiento} vence el {r.FechaVencimiento:dd/MM/yyyy}");
+
+Console.WriteLine("\n=== CRÍTICOS ===");
+foreach (var r in service.ObtenerCriticos())
+    Console.WriteLine($"- {r.TipoVencimiento} | Prioridad: {r.Prioridad}");
+
+Console.WriteLine();
+
 var scheduler = new TareaProgramadaService();
 await scheduler.IniciarAsync(recordatorios);
